@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -348,7 +349,7 @@ private fun Field(
 // a dropdown that looks like the popup's <select>. a blog can have thousands of posts, so only
 // the rows on screen are drawn, and a long list gets a search field
 @Composable
-private fun Select(selected: String?, placeholder: String, options: List<Pair<String, () -> Unit>>) {
+internal fun Select(selected: String?, placeholder: String, options: List<Pair<String, () -> Unit>>) {
     var expanded by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var width by remember { mutableStateOf(0) }
@@ -377,13 +378,18 @@ private fun Select(selected: String?, placeholder: String, options: List<Pair<St
             )
             Chevron()
         }
-        DropdownMenu(expanded, close, Modifier.width(with(LocalDensity.current) { width.toDp() })) {
+        val menuWidth = with(LocalDensity.current) { width.toDp() }
+        DropdownMenu(expanded, close, Modifier.width(menuWidth)) {
             if (options.size > SEARCHABLE)
                 Field(query, { query = it }, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), placeholder = "Search")
             val shown = remember(options, query) { options.matching(query) }
-            LazyColumn(Modifier.heightIn(max = 320.dp)) {
+            // the menu asks its content how big it wants to be, which a lazy list can't answer
+            // without laying out every row (and throws rather than try), so it's told
+            val rows = minOf(shown.size, VISIBLE_ROWS)
+            LazyColumn(Modifier.width(menuWidth).height(ROW_HEIGHT * rows)) {
                 items(shown) { (label, choose) ->
                     DropdownMenuItem(
+                        modifier = Modifier.height(ROW_HEIGHT),
                         text = { Text(label, style = type.body, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                         onClick = {
                             close()
@@ -398,6 +404,10 @@ private fun Select(selected: String?, placeholder: String, options: List<Pair<St
 
 // more choices than this, and the dropdown gets a search field
 private const val SEARCHABLE = 12
+
+// the open dropdown shows this many rows at a time, each tall enough for a two-line title
+private const val VISIBLE_ROWS = 6
+private val ROW_HEIGHT = 52.dp
 
 @Composable
 private fun Chevron() = Canvas(Modifier.padding(start = 6.dp).size(width = 10.dp, height = 6.dp)) {

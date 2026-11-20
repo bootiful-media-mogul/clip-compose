@@ -133,6 +133,10 @@ kotlin {
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
         }
+        // compose ui tests run on the ios simulator; the android host and js test runners can't draw
+        iosTest.dependencies {
+            implementation(libs.compose.uiTest)
+        }
         getByName("androidDeviceTest").dependencies {
             implementation(libs.androidx.testRunner)
         }
