@@ -210,5 +210,7 @@ private fun JsonObject.int(name: String): Int =
  * (no mogul.auth0.clientId in local.properties).
  */
 @OptIn(ExperimentalOpenIdConnect::class)
-fun mogulClient(flows: CodeAuthFlowFactory, tokens: TokenStore): MogulClient =
-    if (mogulConfig.signsIn) GraphqlMogulClient(mogulConfig, MogulAuth(mogulConfig, flows, tokens)) else DemoMogulClient()
+fun mogulClient(flows: CodeAuthFlowFactory, tokens: TokenStore, server: String = mogulConfig.server): MogulClient {
+    val config = mogulConfig.copy(server = server)
+    return if (config.signsIn) GraphqlMogulClient(config, MogulAuth(config, flows, tokens)) else DemoMogulClient()
+}

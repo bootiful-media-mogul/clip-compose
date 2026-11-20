@@ -6,6 +6,8 @@ It clips a page into Mogul as a note on your account: a title, a URL, the note t
 * The look is the extension's: the studio's day palette, Space Grotesk and IBM Plex (converted to TTF in `shared/src/commonMain/composeResources/font`), and the same three attach-to icons.
 * The behavior is the extension's too: one page, one note (a page clipped before reopens its note), highlighted text appended to the note, a lone podcast or blog picked for you, episodes and posts newest first, and Cmd/Ctrl+Enter to save.
 * On Android, the app is a share target: share a page from a browser and it fills in the title, URL, and any highlighted text, then closes once it's saved.
+* On iOS, the share extension (`iosApp/ShareExtension`) does the same: "Clip to Mogul" in the share sheet shows the clip screen over the app you shared from.
+  It shares the app's login through a keychain access group (`iosApp/Configuration/Mogul.entitlements`), so you sign in once, in either.
 
 ## signing in
 
@@ -13,20 +15,27 @@ The apps are oauth clients of their own.
 They sign in to auth0 in the system browser (Chrome Custom Tabs on Android, `ASWebAuthenticationSession` on iOS) with PKCE, keep their tokens on the device (an encrypted DataStore on Android, the keychain on iOS), and send the access token to the gateway, which checks it and passes it on to the api.
 The gateway's README (`~/code/mogul/gateway/README.md`) describes its side, and the auth0 application the apps need.
 
-Say where Mogul and auth0 are in `local.properties` (not checked in), or with `-P` on the command line:
+Where auth0 is, and the auth0 application the apps sign in with, are in `gradle.properties`; neither is a secret, since a native app's client id ships inside it.
+Where Mogul is comes from `local.properties` (not checked in), or `-P` on the command line:
 
 ```properties
+# the gateway, as this machine sees it. the default
 mogul.server=http://127.0.0.1:1010
-mogul.auth0.domain=https://<tenant>.auth0.com/
-mogul.auth0.clientId=<the native auth0 application's client id>
-# optional; these are the defaults
-mogul.auth0.audience=https://api.mogul.tools
-mogul.redirectUri=com.joshlong.mogul://callback
 ```
 
-`mogul.server` is the gateway, as the phone sees it: from the Android emulator, the machine it runs on is `http://10.0.2.2:1010`.
-Debug builds on Android may use plain http to `127.0.0.1`, `10.0.2.2`, and `localhost`; release builds may not.
+The iOS simulator shares this machine's network, so `127.0.0.1` reaches a gateway running here.
+The Android emulator reaches this machine at `10.0.2.2` instead, and the app makes that substitution itself when it runs on an emulator.
+On a real phone, use this machine's address on the Wi-Fi; for production, `https://studio.mogul.tools`.
+Debug builds may use plain http to `127.0.0.1`, `10.0.2.2`, and `localhost`; release builds may not.
+On iOS, `NSAllowsLocalNetworking` in `iosApp/iosApp/Info.plist` allows plain http to this machine.
+Since Android 17, an app needs the local network permission to reach a private address like `10.0.2.2`; debug builds ask for it when they start.
 Without `mogul.auth0.clientId` the app runs against `DemoMogulClient`, an in-memory Mogul, and the web build always does: signing in from a browser page belongs to the studio and its session cookie.
+
+### running on iOS
+
+This needs Xcode (the Command Line Tools alone aren't enough): install it from the App Store, then `sudo xcode-select -s /Applications/Xcode.app`.
+Then either pick the `iosApp` run configuration in Android Studio, or open `iosApp/iosApp.xcodeproj` in Xcode and run it on a simulator.
+A passkey from another device (the QR code) can't sign in on a simulator or an emulator, which have no Bluetooth; use another way of signing in there.
 
 ## how it's put together
 
@@ -39,7 +48,6 @@ Without `mogul.auth0.clientId` the app runs against `DemoMogulClient`, an in-mem
 
 ## to resolve
 
-* **iOS share extension** - the iOS app opens on an empty clip; sharing into it needs a share extension target.
 * **signing out** - there's no way to, yet, short of clearing the app's data.
 
 ---

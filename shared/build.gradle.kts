@@ -22,6 +22,8 @@ fun mogulProperty(name: String, default: String = ""): String =
 val auth0Domain = mogulProperty("mogul.auth0.domain").let { if (it.isEmpty() || it.endsWith("/")) it else "$it/" }
 
 val mogulConfig = mapOf(
+    // the gateway, as this machine sees it: the ios simulator shares this machine's network,
+    // and the android emulator reaches it at 10.0.2.2 instead (see AndroidMogul)
     "server" to mogulProperty("mogul.server", "http://127.0.0.1:1010"),
     "auth0Domain" to auth0Domain,
     "auth0ClientId" to mogulProperty("mogul.auth0.clientId"),
@@ -30,7 +32,7 @@ val mogulConfig = mapOf(
     "redirectUri" to mogulProperty("mogul.redirectUri", "com.joshlong.mogul://callback"),
 )
 
-val generateMogulConfig by tasks.registering {
+val generateMogulConfig = tasks.register("generateMogulConfig") {
     val values = mogulConfig
     val output = layout.buildDirectory.dir("generated/mogul-config/kotlin")
     inputs.properties(values)
@@ -123,6 +125,7 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.multiplatform.settings)
         }
         webMain.dependencies {
             implementation(libs.ktor.client.js)
