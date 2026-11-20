@@ -27,6 +27,15 @@ class SharedCommonTest {
     }
 
     @Test
+    fun matchingFindsEveryWordInAnyOrderAndCase() {
+        val posts = listOf("Spring Boot 4.1 is out" to 1, "This Week in Spring" to 2, "Kotlin and Spring Boot" to 3)
+        assertEquals(posts, posts.matching("  "))
+        assertEquals(listOf(1, 3), posts.matching("boot spring").map { it.second })
+        assertEquals(listOf(2), posts.matching("WEEK").map { it.second })
+        assertEquals(emptyList(), posts.matching("quarkus").map { it.second })
+    }
+
+    @Test
     fun newestFirstComparesMomentsNotText() {
         val sorted = listOf(
             Notable(1, "a", "2026-11-01T10:00:00Z"),

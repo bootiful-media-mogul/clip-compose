@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -72,6 +74,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 private val shape = RoundedCornerShape(Space.radius)
 
@@ -99,7 +102,7 @@ fun App(
 
         LaunchedEffect(state.screen) {
             if (state.screen == Screen.SAVED) {
-                delay(1500)
+                delay(1500.milliseconds)
                 onFinished?.invoke() ?: model.connect()
             }
         }
@@ -342,12 +345,18 @@ private fun Field(
     )
 }
 
-// a dropdown that looks like the popup's <select>
+// a dropdown that looks like the popup's <select>. a blog can have thousands of posts, so only
+// the rows on screen are drawn, and a long list gets a search field
 @Composable
 private fun Select(selected: String?, placeholder: String, options: List<Pair<String, () -> Unit>>) {
     var expanded by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
     var width by remember { mutableStateOf(0) }
     val type = LocalType.current
+    val close = {
+        expanded = false
+        query = ""
+    }
     Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width }) {
         Row(
             Modifier
@@ -368,18 +377,27 @@ private fun Select(selected: String?, placeholder: String, options: List<Pair<St
             )
             Chevron()
         }
-        DropdownMenu(expanded, { expanded = false }, Modifier.width(with(LocalDensity.current) { width.toDp() })) {
-            for ((label, choose) in options)
-                DropdownMenuItem(
-                    text = { Text(label, style = type.body) },
-                    onClick = {
-                        expanded = false
-                        choose()
-                    },
-                )
+        DropdownMenu(expanded, close, Modifier.width(with(LocalDensity.current) { width.toDp() })) {
+            if (options.size > SEARCHABLE)
+                Field(query, { query = it }, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), placeholder = "Search")
+            val shown = remember(options, query) { options.matching(query) }
+            LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                items(shown) { (label, choose) ->
+                    DropdownMenuItem(
+                        text = { Text(label, style = type.body, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                        onClick = {
+                            close()
+                            choose()
+                        },
+                    )
+                }
+            }
         }
     }
 }
+
+// more choices than this, and the dropdown gets a search field
+private const val SEARCHABLE = 12
 
 @Composable
 private fun Chevron() = Canvas(Modifier.padding(start = 6.dp).size(width = 10.dp, height = 6.dp)) {

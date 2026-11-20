@@ -46,15 +46,18 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    // the upload key, for bin/android.sh: from -P or the environment (ORG_GRADLE_PROJECT_...),
-    // never checked in. without one, the release build comes out unsigned
-    val keystore = providers.gradleProperty("mogul.android.keystore").orNull
+    // the upload key, for bin/android.sh: from -Pmogul.android.keystore=... and so on, or the
+    // environment (MOGUL_ANDROID_KEYSTORE and so on), never checked in. without one, the
+    // release build comes out unsigned
+    fun signing(name: String) = providers.gradleProperty("mogul.android.$name")
+        .orElse(providers.environmentVariable("MOGUL_ANDROID_" + name.replace(Regex("([a-z])([A-Z])"), "$1_$2").uppercase()))
+    val keystore = signing("keystore").orNull
     signingConfigs {
         if (keystore != null) create("release") {
             storeFile = file(keystore)
-            storePassword = providers.gradleProperty("mogul.android.keystorePassword").get()
-            keyAlias = providers.gradleProperty("mogul.android.keyAlias").get()
-            keyPassword = providers.gradleProperty("mogul.android.keyPassword").get()
+            storePassword = signing("keystorePassword").get()
+            keyAlias = signing("keyAlias").get()
+            keyPassword = signing("keyPassword").get()
         }
     }
     buildTypes {

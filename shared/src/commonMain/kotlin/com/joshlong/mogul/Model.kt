@@ -109,6 +109,12 @@ internal fun appendSelection(note: String, selection: String): String {
     return if (note.isNotBlank()) note.trimEnd() + "\n\n" + selection else selection
 }
 
+// the choices whose label has every word of the query in it, in any order and any case
+internal fun <T> List<Pair<String, T>>.matching(query: String): List<Pair<String, T>> {
+    val words = query.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    return if (words.isEmpty()) this else filter { (label) -> words.all { label.contains(it, ignoreCase = true) } }
+}
+
 // newest episode or post first. compares the moments, not the text, so dates written
 // with different offsets still sort right; the higher id breaks ties and stands in for a
 // missing date

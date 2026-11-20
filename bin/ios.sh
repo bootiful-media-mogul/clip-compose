@@ -11,10 +11,9 @@ out=iosApp/build/release
 rm -rf "$out"
 mkdir -p "$out"
 
-# xcode runs gradle to build the kotlin framework; this is how it learns the server
-export "ORG_GRADLE_PROJECT_mogul.server=$MOGUL_SERVER"
-
-xcodebuild archive \
+# xcode runs gradle to build the kotlin framework, and gradle reads the server from this.
+# it has a dot in its name, which the shell can't export, but env can pass along
+env "ORG_GRADLE_PROJECT_mogul.server=$MOGUL_SERVER" xcodebuild archive \
   -project iosApp/iosApp.xcodeproj \
   -scheme iosApp \
   -configuration Release \

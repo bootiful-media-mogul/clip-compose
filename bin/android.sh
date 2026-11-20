@@ -3,10 +3,10 @@
 # play store and an apk, in androidApp/build/outputs.
 #
 # to sign them, set these (the upload key; keep it out of the repo):
-#   ORG_GRADLE_PROJECT_mogul.android.keystore          path to the keystore
-#   ORG_GRADLE_PROJECT_mogul.android.keystorePassword
-#   ORG_GRADLE_PROJECT_mogul.android.keyAlias
-#   ORG_GRADLE_PROJECT_mogul.android.keyPassword
+#   MOGUL_ANDROID_KEYSTORE           path to the keystore
+#   MOGUL_ANDROID_KEYSTORE_PASSWORD
+#   MOGUL_ANDROID_KEY_ALIAS
+#   MOGUL_ANDROID_KEY_PASSWORD
 # without them, both come out unsigned.
 set -euo pipefail
 cd "$(dirname "$0")/.."
