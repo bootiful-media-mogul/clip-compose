@@ -37,6 +37,15 @@ This needs Xcode (the Command Line Tools alone aren't enough): install it from t
 Then either pick the `iosApp` run configuration in Android Studio, or open `iosApp/iosApp.xcodeproj` in Xcode and run it on a simulator.
 A passkey from another device (the QR code) can't sign in on a simulator or an emulator, which have no Bluetooth; use another way of signing in there.
 
+## building and running from the command line
+
+* `bin/android-dev.sh` builds the app against the gateway on this machine and runs it on the emulator, starting one (the first AVD, or `AVD=<name>`) if none is running.
+* `bin/ios-dev.sh` does the same on an iOS simulator (`iPhone 17`, or `SIMULATOR=<name>`), and shows the app's output until you stop it.
+* `bin/android.sh` builds the play store bundle and an apk against production (`https://studio.mogul.tools`, or `MOGUL_SERVER=<url>`), in `androidApp/build/outputs`.
+  They're signed if the upload key's `ORG_GRADLE_PROJECT_mogul.android.*` settings are set (see the script), and unsigned otherwise.
+* `bin/ios.sh` archives the app and its share extension against production and exports an `.ipa` for App Store Connect, in `iosApp/build/release`.
+  It signs with the team in the Xcode project, through the Apple account signed in to Xcode, which creates the app ids and provisioning profiles it needs.
+
 ## how it's put together
 
 * `Model.kt` - the page, notes, attach-to choices, and the rules from `popup.js` (validation, sorting, where a note goes).

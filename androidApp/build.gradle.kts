@@ -46,8 +46,20 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    // the upload key, for bin/android.sh: from -P or the environment (ORG_GRADLE_PROJECT_...),
+    // never checked in. without one, the release build comes out unsigned
+    val keystore = providers.gradleProperty("mogul.android.keystore").orNull
+    signingConfigs {
+        if (keystore != null) create("release") {
+            storeFile = file(keystore)
+            storePassword = providers.gradleProperty("mogul.android.keystorePassword").get()
+            keyAlias = providers.gradleProperty("mogul.android.keyAlias").get()
+            keyPassword = providers.gradleProperty("mogul.android.keyPassword").get()
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
