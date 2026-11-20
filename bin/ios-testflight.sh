@@ -5,17 +5,28 @@
 #
 #   ASC_KEY_ID      the key's id
 #   ASC_ISSUER_ID   the issuer id, shown above the list of keys
-#   ASC_KEY_PATH    the .p8 file; defaults to ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+#   ASC_KEY         the contents of the key's .p8 file (or ASC_KEY_PATH, the file itself)
 #   MOGUL_SERVER    defaults to https://studio.mogul.tools
+#
+# on a laptop, `source ~/code/mogul/workspace/bin/env.sh` sets the first three, from the
+# mogul-clip-appstore-connect-api item in bitwarden. in ci, they'd come from secrets.
 #
 # each upload needs a build number higher than the last, so this uses the time: 20261120.2245.
 # apple then processes the build for a few minutes before testflight offers it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-: "${ASC_KEY_ID:?set ASC_KEY_ID to the id of the app store connect api key}"
-: "${ASC_ISSUER_ID:?set ASC_ISSUER_ID to the app store connect api issuer id}"
-ASC_KEY_PATH="${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8}"
+hint="(source ~/code/mogul/workspace/bin/env.sh first)"
+: "${ASC_KEY_ID:?set ASC_KEY_ID to the id of the app store connect api key $hint}"
+: "${ASC_ISSUER_ID:?set ASC_ISSUER_ID to the app store connect api issuer id $hint}"
+
+# xcodebuild wants the key as a file: write it somewhere only we can read, for this run only
+if [ -z "${ASC_KEY_PATH:-}" ]; then
+  : "${ASC_KEY:?set ASC_KEY to the contents of the app store connect api key, or ASC_KEY_PATH to the file $hint}"
+  ASC_KEY_PATH="$(mktemp -d)/AuthKey_$ASC_KEY_ID.p8"
+  trap 'rm -rf "$(dirname "$ASC_KEY_PATH")"' EXIT
+  (umask 077 && printf '%s\n' "$ASC_KEY" > "$ASC_KEY_PATH")
+fi
 [ -f "$ASC_KEY_PATH" ] || { echo "no api key at $ASC_KEY_PATH" >&2; exit 1; }
 
 MOGUL_SERVER="${MOGUL_SERVER:-https://studio.mogul.tools}"
