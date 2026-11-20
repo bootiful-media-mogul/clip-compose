@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- debug builds only: talk plain http to a gateway running on this machine. since android 17,
+     reaching a private address (10.0.2.2 from the emulator, or the machine's wi-fi address from a
+     phone) also takes the local network permission, which MainActivity asks for at startup -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+
+</manifest>
