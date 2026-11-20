@@ -45,6 +45,8 @@ A passkey from another device (the QR code) can't sign in on a simulator or an e
   They're signed if the upload key's `MOGUL_ANDROID_*` environment variables are set (see the script), and unsigned otherwise.
 * `bin/ios.sh` archives the app and its share extension against production and exports an `.ipa` for App Store Connect, in `iosApp/build/release`.
   It signs with the team in the Xcode project, through the Apple account signed in to Xcode, which creates the app ids and provisioning profiles it needs.
+* `bin/ios_testflight.sh` does the same and uploads the build to TestFlight, signing and uploading with an App Store Connect API key (`ASC_KEY_ID`, `ASC_ISSUER_ID`, and the `.p8` in `~/.appstoreconnect/private_keys`) instead of an Apple ID, so it can run unattended.
+  Each build is numbered with the time it was made, so every upload is newer than the last.
 
 ## how it's put together
 
