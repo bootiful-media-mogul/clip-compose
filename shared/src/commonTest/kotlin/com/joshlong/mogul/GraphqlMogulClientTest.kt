@@ -129,22 +129,39 @@ class GraphqlMogulClientTest {
     }
 
     @Test
-    fun asksForAPageOfPostsAndSearchesTheRest() = runTest {
+    fun asksForAPageOfTheNewestPosts() = runTest {
         val client = client { json("""{"data":{"blogPostsByBlog":[{"id":21,"title":"spring boot","created":"2026-11-01T00:00:00Z"}]}}""") }
-        assertEquals(listOf(Notable(21, "spring boot", "2026-11-01T00:00:00Z")), client.blogPosts(1, "boot spring", 100))
+        assertEquals(listOf(Notable(21, "spring boot", "2026-11-01T00:00:00Z")), client.blogPosts(1, 100))
         val variables = this@GraphqlMogulClientTest.requests.single().graphql()["variables"]!!.jsonObject
         assertEquals(1, variables["id"]!!.jsonPrimitive.int)
-        assertEquals("boot spring", variables["query"]!!.jsonPrimitive.content)
         assertEquals(100, variables["limit"]!!.jsonPrimitive.int)
     }
 
     @Test
-    fun withNoQueryOrLimitItAsksForEveryPost() = runTest {
+    fun withNoLimitItAsksForEveryPost() = runTest {
         val client = client { json("""{"data":{"blogPostsByBlog":[]}}""") }
         client.blogPosts(1)
         val variables = this@GraphqlMogulClientTest.requests.single().graphql()["variables"]!!.jsonObject
-        assertEquals("null", variables["query"].toString())
         assertEquals("null", variables["limit"].toString())
+    }
+
+    @Test
+    fun searchesOneBlogsPostsWithTheStudiosSearch() = runTest {
+        val client = client { json("""{"data":{"search":[{"aggregateId":21,"title":"spring boot","created":"2026-11-01T00:00:00Z"}]}}""") }
+        assertEquals(listOf(Notable(21, "spring boot", "2026-11-01T00:00:00Z")), client.searchPosts(7, "boot"))
+        val request = this@GraphqlMogulClientTest.requests.single().graphql()
+        assertTrue("search(" in request["query"]!!.jsonPrimitive.content)
+        val variables = request["variables"]!!.jsonObject
+        assertEquals("boot", variables["query"]!!.jsonPrimitive.content)
+        assertEquals("""{"type":"post","blogId":7}""", variables["metadata"].toString())
+    }
+
+    @Test
+    fun searchesOnePodcastsEpisodesByTheirSegments() = runTest {
+        val client = client { json("""{"data":{"search":[]}}""") }
+        client.searchEpisodes(3, "kotlin")
+        val variables = this@GraphqlMogulClientTest.requests.single().graphql()["variables"]!!.jsonObject
+        assertEquals("""{"type":"segment","podcastId":3}""", variables["metadata"].toString())
     }
 
     @Test

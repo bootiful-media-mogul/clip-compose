@@ -17,9 +17,11 @@ interface MogulClient {
 
     suspend fun podcasts(): List<Notable>
 
-    // the episodes whose titles have every word of [query] in them (all of them, for none),
-    // newest first, and at most [limit] of them (all of them, for none)
-    suspend fun podcastEpisodes(podcastId: Int, query: String? = null, limit: Int? = null): List<Notable>
+    // the newest episodes, at most [limit] of them (all of them, for none)
+    suspend fun podcastEpisodes(podcastId: Int, limit: Int? = null): List<Notable>
+
+    // the podcast's episodes that mogul's search finds for [query], best first
+    suspend fun searchEpisodes(podcastId: Int, query: String): List<Notable>
 
     suspend fun podcastEpisode(episodeId: Int): Notable
 
@@ -27,9 +29,11 @@ interface MogulClient {
 
     suspend fun blogs(): List<Notable>
 
-    // the posts whose titles have every word of [query] in them (all of them, for none),
-    // newest first, and at most [limit] of them (all of them, for none)
-    suspend fun blogPosts(blogId: Int, query: String? = null, limit: Int? = null): List<Notable>
+    // the newest posts, at most [limit] of them (all of them, for none)
+    suspend fun blogPosts(blogId: Int, limit: Int? = null): List<Notable>
+
+    // the blog's posts that mogul's search finds for [query], best first
+    suspend fun searchPosts(blogId: Int, query: String): List<Notable>
 
     suspend fun blogPost(postId: Int): Notable
 
@@ -45,11 +49,12 @@ interface MogulClient {
 
 // an in-memory Mogul, so the screen has something to talk to before there's a way to
 // sign in from outside a browser (personal access tokens in the gateway)
-// what the gateway does with a query and a limit, done in memory
-internal fun List<Notable>.page(query: String?, limit: Int?): List<Notable> {
-    val matches = this.map { (it.title ?: "") to it }.matching(query.orEmpty()).map { it.second }.newestFirst()
-    return if (limit == null) matches else matches.take(limit)
-}
+// what mogul does with a limit, and (roughly) with a search, done in memory
+internal fun List<Notable>.newest(limit: Int?): List<Notable> =
+    this.newestFirst().let { if (limit == null) it else it.take(limit) }
+
+internal fun List<Notable>.found(query: String): List<Notable> =
+    this.map { (it.title ?: "") to it }.matching(query).map { it.second }
 
 class DemoMogulClient(private var signedIn: Boolean = true) : MogulClient {
 
@@ -93,8 +98,11 @@ class DemoMogulClient(private var signedIn: Boolean = true) : MogulClient {
 
     override suspend fun podcasts() = call().let { this.podcasts }
 
-    override suspend fun podcastEpisodes(podcastId: Int, query: String?, limit: Int?) =
-        call().let { this.episodes[podcastId].orEmpty().page(query, limit) }
+    override suspend fun podcastEpisodes(podcastId: Int, limit: Int?) =
+        call().let { this.episodes[podcastId].orEmpty().newest(limit) }
+
+    override suspend fun searchEpisodes(podcastId: Int, query: String) =
+        call().let { this.episodes[podcastId].orEmpty().found(query) }
 
     override suspend fun podcastEpisode(episodeId: Int) = call().let { this.episodes.values.flatten().first { it.id == episodeId } }
 
@@ -103,8 +111,11 @@ class DemoMogulClient(private var signedIn: Boolean = true) : MogulClient {
 
     override suspend fun blogs() = call().let { this.blogs }
 
-    override suspend fun blogPosts(blogId: Int, query: String?, limit: Int?) =
-        call().let { this.posts[blogId].orEmpty().page(query, limit) }
+    override suspend fun blogPosts(blogId: Int, limit: Int?) =
+        call().let { this.posts[blogId].orEmpty().newest(limit) }
+
+    override suspend fun searchPosts(blogId: Int, query: String) =
+        call().let { this.posts[blogId].orEmpty().found(query) }
 
     override suspend fun blogPost(postId: Int) = call().let { this.posts.values.flatten().first { it.id == postId } }
 

@@ -17,7 +17,7 @@ enum class Screen { LOADING, SIGNED_OUT, FORM, SAVED, NONE }
 data class AttachChoices(
     val parents: List<Notable> = emptyList(),
     val children: List<Notable>? = null, // null until a parent is picked
-    // the newest [PAGE] of a parent's children, or the newest [PAGE] that match a search. if
+    // the newest [PAGE] of a parent's children, or the best [PAGE] a search finds. if
     // the page came back full there may be more, so the dropdown searches mogul, not the page
     val more: Boolean = false,
     // the picked child, which may be older than anything on the page
@@ -126,8 +126,8 @@ class ClipViewModel(private val client: MogulClient, private val page: Page) : V
         )
     }
 
-    // the episodes or posts that match what's been typed into the dropdown, from mogul,
-    // once typing pauses. a blank search goes back to the newest
+    // the episodes or posts mogul's search finds for what's been typed into the dropdown,
+    // best first, once typing pauses. a blank search goes back to the newest
     fun searchChildren(query: String) {
         this.searching?.cancel()
         val spec = AttachSpec.of(this.state.value.attach.kind) ?: return
@@ -137,9 +137,9 @@ class ClipViewModel(private val client: MogulClient, private val page: Page) : V
                 val children = if (query.isBlank()) newest(spec, parentId) else {
                     delay(SEARCH_PAUSE)
                     when (spec) {
-                        AttachSpec.PODCASTS -> client.podcastEpisodes(parentId, query, PAGE)
-                        AttachSpec.BLOGS -> client.blogPosts(parentId, query, PAGE)
-                    }.newestFirst()
+                        AttachSpec.PODCASTS -> client.searchEpisodes(parentId, query)
+                        AttachSpec.BLOGS -> client.searchPosts(parentId, query)
+                    }.take(PAGE)
                 }
                 state.update { it.copy(choices = it.choices.copy(children = children)) }
             }

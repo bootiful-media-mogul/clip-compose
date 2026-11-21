@@ -80,11 +80,15 @@ internal class GraphqlMogulClient(
     override suspend fun podcasts() =
         this.graphql("query { podcasts { id title } }")["podcasts"].notables()
 
-    override suspend fun podcastEpisodes(podcastId: Int, query: String?, limit: Int?) =
+    override suspend fun podcastEpisodes(podcastId: Int, limit: Int?) =
         this.graphql(
-            "query (\$id: Int, \$query: String, \$limit: Int) { podcastEpisodesByPodcast(podcastId: \$id, query: \$query, limit: \$limit) { id title created } }",
-            mapOf("id" to podcastId, "query" to query, "limit" to limit),
+            "query (\$id: Int, \$limit: Int) { podcastEpisodesByPodcast(podcastId: \$id, limit: \$limit) { id title created } }",
+            mapOf("id" to podcastId, "limit" to limit),
         )["podcastEpisodesByPodcast"].notables()
+
+    // an episode is found by its segments (their transcripts, and its title)
+    override suspend fun searchEpisodes(podcastId: Int, query: String) =
+        this.search(query, mapOf("type" to "segment", "podcastId" to podcastId))
 
     override suspend fun podcastEpisode(episodeId: Int) =
         this.graphql(
@@ -101,11 +105,22 @@ internal class GraphqlMogulClient(
     override suspend fun blogs() =
         this.graphql("query { blogs { id title } }")["blogs"].notables()
 
-    override suspend fun blogPosts(blogId: Int, query: String?, limit: Int?) =
+    override suspend fun blogPosts(blogId: Int, limit: Int?) =
         this.graphql(
-            "query (\$id: Int, \$query: String, \$limit: Int) { blogPostsByBlog(blogId: \$id, query: \$query, limit: \$limit) { id title created } }",
-            mapOf("id" to blogId, "query" to query, "limit" to limit),
+            "query (\$id: Int, \$limit: Int) { blogPostsByBlog(blogId: \$id, limit: \$limit) { id title created } }",
+            mapOf("id" to blogId, "limit" to limit),
         )["blogPostsByBlog"].notables()
+
+    override suspend fun searchPosts(blogId: Int, query: String) =
+        this.search(query, mapOf("type" to "post", "blogId" to blogId))
+
+    // the studio's search, narrowed by [metadata] to one blog's posts or one podcast's
+    // episodes. a result's aggregate id is the post's or episode's own
+    private suspend fun search(query: String, metadata: Map<String, Any>) =
+        this.graphql(
+            "query (\$query: String, \$metadata: JSON) { search(query: \$query, metadata: \$metadata) { aggregateId title created } }",
+            mapOf("query" to query, "metadata" to metadata),
+        )["search"].list().map { Notable(it.int("aggregateId"), it.string("title"), it.string("created")) }
 
     override suspend fun blogPost(postId: Int) =
         this.graphql(
@@ -197,6 +212,7 @@ private fun Any?.toJson(): JsonElement = when (this) {
     null -> JsonNull
     is Number -> JsonPrimitive(this)
     is Boolean -> JsonPrimitive(this)
+    is Map<*, *> -> JsonObject(this.entries.associate { (key, value) -> key.toString() to value.toJson() })
     else -> JsonPrimitive(this.toString())
 }
 

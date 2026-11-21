@@ -27,11 +27,13 @@ class ClipViewModelTest {
         override suspend fun me() = Mogul(7, "Josh")
         override suspend fun notesForUrl(url: String) = emptyList<Note>()
         override suspend fun podcasts() = emptyList<Notable>()
-        override suspend fun podcastEpisodes(podcastId: Int, query: String?, limit: Int?) = emptyList<Notable>()
+        override suspend fun podcastEpisodes(podcastId: Int, limit: Int?) = emptyList<Notable>()
+        override suspend fun searchEpisodes(podcastId: Int, query: String) = emptyList<Notable>()
         override suspend fun podcastEpisode(episodeId: Int) = error("no podcasts")
         override suspend fun podcastOfEpisode(episodeId: Int) = error("no podcasts")
         override suspend fun blogs() = this.blogs.toList()
-        override suspend fun blogPosts(blogId: Int, query: String?, limit: Int?) = this.posts[blogId].orEmpty().toList().page(query, limit)
+        override suspend fun blogPosts(blogId: Int, limit: Int?) = this.posts[blogId].orEmpty().toList().newest(limit)
+        override suspend fun searchPosts(blogId: Int, query: String) = this.posts[blogId].orEmpty().toList().found(query)
         override suspend fun blogPost(postId: Int) = this.posts.values.flatten().first { it.id == postId }
         override suspend fun blogOfPost(postId: Int) = 1
         override suspend fun createNote(type: String, id: Int, title: String?, url: String?, note: String) = true
