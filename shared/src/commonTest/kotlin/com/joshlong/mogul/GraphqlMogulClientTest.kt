@@ -129,6 +129,25 @@ class GraphqlMogulClientTest {
     }
 
     @Test
+    fun asksForAPageOfPostsAndSearchesTheRest() = runTest {
+        val client = client { json("""{"data":{"blogPostsByBlog":[{"id":21,"title":"spring boot","created":"2026-11-01T00:00:00Z"}]}}""") }
+        assertEquals(listOf(Notable(21, "spring boot", "2026-11-01T00:00:00Z")), client.blogPosts(1, "boot spring", 100))
+        val variables = this@GraphqlMogulClientTest.requests.single().graphql()["variables"]!!.jsonObject
+        assertEquals(1, variables["id"]!!.jsonPrimitive.int)
+        assertEquals("boot spring", variables["query"]!!.jsonPrimitive.content)
+        assertEquals(100, variables["limit"]!!.jsonPrimitive.int)
+    }
+
+    @Test
+    fun withNoQueryOrLimitItAsksForEveryPost() = runTest {
+        val client = client { json("""{"data":{"blogPostsByBlog":[]}}""") }
+        client.blogPosts(1)
+        val variables = this@GraphqlMogulClientTest.requests.single().graphql()["variables"]!!.jsonObject
+        assertEquals("null", variables["query"].toString())
+        assertEquals("null", variables["limit"].toString())
+    }
+
+    @Test
     fun savesWithTheVariablesTheApiExpects() = runTest {
         val client = client { json("""{"data":{"createNote":true}}""") }
         assertTrue(client.createNote("episode", 11, null, "https://spring.io", "worth a look"))

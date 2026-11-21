@@ -42,7 +42,7 @@ class SharedCommonTest {
             Notable(2, "b", "2026-11-01T05:00:00-07:00"), // 12:00Z, the newest
             Notable(3, "c", null),
             Notable(4, "d", null),
-        ).sortedWith(newestFirst)
+        ).newestFirst()
         assertEquals(listOf(2, 1, 4, 3), sorted.map { it.id })
     }
 

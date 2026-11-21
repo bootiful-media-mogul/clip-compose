@@ -35,7 +35,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,8 +57,6 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -262,11 +259,15 @@ private fun AttachTo(state: ClipState, model: ClipViewModel) {
     // a note already on the whole podcast can stay there
     val whole = spec.wholeParent?.takeIf { spec.parentType != null && pick.wholeParent }
     Label(spec.childLabel, small = true)
+    val choices = state.choices
     Select(
-        selected = whole ?: children.firstOrNull { it.id == pick.childId }?.titleOrUntitled(),
-        placeholder = if (children.isEmpty()) spec.noChildren else spec.chooseChild,
+        selected = whole ?: choices.picked?.takeIf { it.id == pick.childId }?.titleOrUntitled(),
+        placeholder = if (children.isEmpty() && !choices.more) spec.noChildren else spec.chooseChild,
         options = listOfNotNull(whole?.let { it to { model.attachChild(null) } }) +
                 children.map { it.titleOrUntitled() to { model.attachChild(it.id) } },
+        // only the newest are here: the rest are found by asking mogul
+        search = if (choices.more) model::searchChildren else null,
+        searchPlaceholder = "Search all ${spec.childLabel.lowercase()}s",
     )
 }
 
@@ -346,26 +347,38 @@ private fun Field(
     )
 }
 
-// a dropdown that looks like the popup's <select>. a blog can have thousands of posts, so only
-// the rows on screen are drawn, and a long list gets a search field
+// a dropdown that looks like the popup's <select>. it opens in place, under the field, not as
+// a menu: on ios a menu is drawn in a second full-screen layer, which the share extension
+// (killed past 220 MB) can't afford. only the rows on screen are drawn. a long list gets a
+// search field that filters it; with [search], the field goes to [search] instead, and the
+// options are whatever it has found
 @Composable
-internal fun Select(selected: String?, placeholder: String, options: List<Pair<String, () -> Unit>>) {
+internal fun Select(
+    selected: String?,
+    placeholder: String,
+    options: List<Pair<String, () -> Unit>>,
+    search: ((String) -> Unit)? = null,
+    searchPlaceholder: String = "Search",
+) {
     var expanded by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    var width by remember { mutableStateOf(0) }
     val type = LocalType.current
     val close = {
         expanded = false
+        if (query.isNotEmpty())
+            search?.invoke("")
         query = ""
     }
-    Box(Modifier.fillMaxWidth().onSizeChanged { width = it.width }) {
+    Column(Modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .clip(shape)
                 .background(Palette.fieldBg)
                 .border(if (expanded) 2.dp else 1.dp, if (expanded) Palette.accent else Palette.fieldBorder, shape)
-                .clickable(enabled = options.isNotEmpty(), role = Role.DropdownList) { expanded = true }
+                .clickable(enabled = options.isNotEmpty() || search != null, role = Role.DropdownList) {
+                    if (expanded) close() else expanded = true
+                }
                 .padding(horizontal = 9.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -378,24 +391,40 @@ internal fun Select(selected: String?, placeholder: String, options: List<Pair<S
             )
             Chevron()
         }
-        val menuWidth = with(LocalDensity.current) { width.toDp() }
-        DropdownMenu(expanded, close, Modifier.width(menuWidth)) {
-            if (options.size > SEARCHABLE)
-                Field(query, { query = it }, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), placeholder = "Search")
-            val shown = remember(options, query) { options.matching(query) }
-            // the menu asks its content how big it wants to be, which a lazy list can't answer
-            // without laying out every row (and throws rather than try), so it's told
-            val rows = minOf(shown.size, VISIBLE_ROWS)
-            LazyColumn(Modifier.width(menuWidth).height(ROW_HEIGHT * rows)) {
-                items(shown) { (label, choose) ->
-                    DropdownMenuItem(
-                        modifier = Modifier.height(ROW_HEIGHT),
-                        text = { Text(label, style = type.body, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                        onClick = {
-                            close()
-                            choose()
+        if (expanded) {
+            Column(
+                Modifier
+                    .padding(top = 4.dp)
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(Palette.fieldBg)
+                    .border(1.dp, Palette.fieldBorder, shape),
+            ) {
+                if (search != null || options.size > SEARCHABLE)
+                    Field(
+                        query,
+                        {
+                            query = it
+                            search?.invoke(it)
                         },
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        placeholder = searchPlaceholder,
                     )
+                val shown = remember(options, query, search) { if (search != null) options else options.matching(query) }
+                if (shown.isEmpty() && query.isNotBlank())
+                    Text("Nothing matches", Modifier.padding(horizontal = 12.dp, vertical = 10.dp), style = type.small)
+                // the form scrolls, so the list inside it needs a height of its own
+                LazyColumn(Modifier.fillMaxWidth().height(ROW_HEIGHT * minOf(shown.size, VISIBLE_ROWS))) {
+                    items(shown) { (label, choose) ->
+                        DropdownMenuItem(
+                            modifier = Modifier.height(ROW_HEIGHT),
+                            text = { Text(label, style = type.body, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            onClick = {
+                                close()
+                                choose()
+                            },
+                        )
+                    }
                 }
             }
         }

@@ -80,11 +80,17 @@ internal class GraphqlMogulClient(
     override suspend fun podcasts() =
         this.graphql("query { podcasts { id title } }")["podcasts"].notables()
 
-    override suspend fun podcastEpisodes(podcastId: Int) =
+    override suspend fun podcastEpisodes(podcastId: Int, query: String?, limit: Int?) =
         this.graphql(
-            "query (\$id: Int) { podcastEpisodesByPodcast(podcastId: \$id) { id title created } }",
-            mapOf("id" to podcastId),
+            "query (\$id: Int, \$query: String, \$limit: Int) { podcastEpisodesByPodcast(podcastId: \$id, query: \$query, limit: \$limit) { id title created } }",
+            mapOf("id" to podcastId, "query" to query, "limit" to limit),
         )["podcastEpisodesByPodcast"].notables()
+
+    override suspend fun podcastEpisode(episodeId: Int) =
+        this.graphql(
+            "query (\$id: Int) { podcastEpisodeById(podcastEpisodeId: \$id) { id title created } }",
+            mapOf("id" to episodeId),
+        )["podcastEpisodeById"].obj().notable()
 
     override suspend fun podcastOfEpisode(episodeId: Int) =
         this.graphql(
@@ -95,11 +101,17 @@ internal class GraphqlMogulClient(
     override suspend fun blogs() =
         this.graphql("query { blogs { id title } }")["blogs"].notables()
 
-    override suspend fun blogPosts(blogId: Int) =
+    override suspend fun blogPosts(blogId: Int, query: String?, limit: Int?) =
         this.graphql(
-            "query (\$id: Int) { blogPostsByBlog(blogId: \$id) { id title created } }",
-            mapOf("id" to blogId),
+            "query (\$id: Int, \$query: String, \$limit: Int) { blogPostsByBlog(blogId: \$id, query: \$query, limit: \$limit) { id title created } }",
+            mapOf("id" to blogId, "query" to query, "limit" to limit),
         )["blogPostsByBlog"].notables()
+
+    override suspend fun blogPost(postId: Int) =
+        this.graphql(
+            "query (\$id: Int) { postById(postId: \$id) { id title created } }",
+            mapOf("id" to postId),
+        )["postById"].obj().notable()
 
     override suspend fun blogOfPost(postId: Int) =
         this.graphql(
@@ -194,8 +206,9 @@ private fun JsonElement?.obj(): JsonObject =
 private fun JsonElement?.list(): List<JsonObject> =
     this?.takeIf { it !is JsonNull }?.jsonArray?.filter { it !is JsonNull }?.map { it.jsonObject }.orEmpty()
 
-private fun JsonElement?.notables(): List<Notable> =
-    this.list().map { Notable(it.int("id"), it.string("title"), it.string("created")) }
+private fun JsonElement?.notables(): List<Notable> = this.list().map { it.notable() }
+
+private fun JsonObject.notable(): Notable = Notable(this.int("id"), this.string("title"), this.string("created"))
 
 private fun JsonElement?.isTrue(): Boolean =
     (this as? JsonPrimitive)?.contentOrNull == "true"

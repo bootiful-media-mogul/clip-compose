@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +17,18 @@ enum class Screen { LOADING, SIGNED_OUT, FORM, SAVED, NONE }
 data class AttachChoices(
     val parents: List<Notable> = emptyList(),
     val children: List<Notable>? = null, // null until a parent is picked
+    // the newest [PAGE] of a parent's children, or the newest [PAGE] that match a search. if
+    // the page came back full there may be more, so the dropdown searches mogul, not the page
+    val more: Boolean = false,
+    // the picked child, which may be older than anything on the page
+    val picked: Notable? = null,
 )
+
+// how many episodes or posts the dropdowns show at once: a blog can have thousands
+internal const val PAGE = 100
+
+// how long typing has to pause before a search goes to mogul, in milliseconds
+private const val SEARCH_PAUSE = 300L
 
 data class ClipState(
     val screen: Screen = Screen.LOADING,
@@ -51,6 +63,8 @@ class ClipViewModel(private val client: MogulClient, private val page: Page) : V
     private val lists = mutableMapOf<String, List<Notable>>() // the podcasts, episodes, blogs, and posts loaded so far
 
     private var attaching: Job? = null
+
+    private var searching: Job? = null
 
     init {
         connect()
@@ -105,7 +119,31 @@ class ClipViewModel(private val client: MogulClient, private val page: Page) : V
 
     // null is "the whole podcast"
     fun attachChild(id: Int?) = this.state.update {
-        it.copy(error = null, attach = it.attach.withPick(it.attach.pick.copy(childId = id, wholeParent = id == null)))
+        it.copy(
+            error = null,
+            attach = it.attach.withPick(it.attach.pick.copy(childId = id, wholeParent = id == null)),
+            choices = it.choices.copy(picked = it.choices.children?.firstOrNull { child -> child.id == id }),
+        )
+    }
+
+    // the episodes or posts that match what's been typed into the dropdown, from mogul,
+    // once typing pauses. a blank search goes back to the newest
+    fun searchChildren(query: String) {
+        this.searching?.cancel()
+        val spec = AttachSpec.of(this.state.value.attach.kind) ?: return
+        val parentId = this.state.value.attach.pick.parentId ?: return
+        this.searching = this.viewModelScope.launch {
+            guarded {
+                val children = if (query.isBlank()) newest(spec, parentId) else {
+                    delay(SEARCH_PAUSE)
+                    when (spec) {
+                        AttachSpec.PODCASTS -> client.podcastEpisodes(parentId, query, PAGE)
+                        AttachSpec.BLOGS -> client.blogPosts(parentId, query, PAGE)
+                    }.newestFirst()
+                }
+                state.update { it.copy(choices = it.choices.copy(children = children)) }
+            }
+        }
     }
 
     // one page, one note: if this page was clipped before, reopen that note rather than
@@ -145,9 +183,15 @@ class ClipViewModel(private val client: MogulClient, private val page: Page) : V
     private suspend fun cached(key: String, load: suspend () -> List<Notable>): List<Notable> =
         this.lists[key] ?: load().also { this.lists[key] = it }
 
+    private suspend fun newest(spec: AttachSpec, parentId: Int): List<Notable> = when (spec) {
+        AttachSpec.PODCASTS -> cached("podcasts:$parentId") { client.podcastEpisodes(parentId, limit = PAGE) }
+        AttachSpec.BLOGS -> cached("blogs:$parentId") { client.blogPosts(parentId, limit = PAGE) }
+    }.newestFirst()
+
     // loads what the attach-to dropdowns list for the chosen kind
     private fun showAttachment() {
         this.attaching?.cancel()
+        this.searching?.cancel()
         this.state.update { it.copy(choices = AttachChoices()) }
         val spec = AttachSpec.of(this.state.value.attach.kind) ?: return
         this.attaching = this.viewModelScope.launch {
@@ -164,11 +208,15 @@ class ClipViewModel(private val client: MogulClient, private val page: Page) : V
                 }
                 state.update { it.copy(choices = AttachChoices(parents)) }
                 val parentId = pick.parentId ?: return@guarded
-                val children = when (spec) {
-                    AttachSpec.PODCASTS -> cached("podcasts:$parentId") { client.podcastEpisodes(parentId) }
-                    AttachSpec.BLOGS -> cached("blogs:$parentId") { client.blogPosts(parentId) }
-                }.sortedWith(newestFirst)
-                state.update { it.copy(choices = AttachChoices(parents, children)) }
+                val children = newest(spec, parentId)
+                // a note on an old post: the post's not on the page, but it's still the one picked
+                val picked = pick.childId?.let { id ->
+                    children.firstOrNull { it.id == id } ?: when (spec) {
+                        AttachSpec.PODCASTS -> client.podcastEpisode(id)
+                        AttachSpec.BLOGS -> client.blogPost(id)
+                    }
+                }
+                state.update { it.copy(choices = AttachChoices(parents, children, more = children.size >= PAGE, picked = picked)) }
             }
         }
     }

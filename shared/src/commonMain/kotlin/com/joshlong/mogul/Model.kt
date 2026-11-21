@@ -117,8 +117,8 @@ internal fun <T> List<Pair<String, T>>.matching(query: String): List<Pair<String
 
 // newest episode or post first. compares the moments, not the text, so dates written
 // with different offsets still sort right; the higher id breaks ties and stands in for a
-// missing date
-internal val newestFirst: Comparator<Notable> =
-    compareByDescending<Notable> { item ->
-        item.created?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: Instant.DISTANT_PAST
-    }.thenByDescending { it.id }
+// missing date. each date is read once, not on every comparison: a blog can have thousands
+internal fun List<Notable>.newestFirst(): List<Notable> =
+    this.map { it to (it.created?.let { created -> runCatching { Instant.parse(created) }.getOrNull() } ?: Instant.DISTANT_PAST) }
+        .sortedWith(compareByDescending<Pair<Notable, Instant>> { it.second }.thenByDescending { it.first.id })
+        .map { it.first }

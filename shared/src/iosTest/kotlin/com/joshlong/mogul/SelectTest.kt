@@ -1,5 +1,8 @@
 package com.joshlong.mogul
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
@@ -28,5 +31,32 @@ class SelectTest {
         onNodeWithText("Search").performTextInput("9876")
         onNodeWithText("Post number 9876").performClick()
         assertEquals(9876, picked)
+    }
+
+    @Test
+    fun withASearchTheTypingGoesToMogulAndTheOptionsAreWhatItFound() = runComposeUiTest {
+        val searches = mutableListOf<String>()
+        var posts by mutableStateOf((2_401..2_500).reversed().map { n -> "Post number $n" to { } })
+        setContent {
+            MogulTheme {
+                Select(
+                    selected = null,
+                    placeholder = "Choose a post",
+                    options = posts,
+                    search = { query ->
+                        searches += query
+                        // what mogul would answer
+                        posts = if (query.isBlank()) posts else listOf("Post number 17" to { })
+                    },
+                    searchPlaceholder = "Search all posts",
+                )
+            }
+        }
+        onNodeWithText("Choose a post").performClick()
+        onNodeWithText("Search all posts").performTextInput("17")
+        assertEquals(listOf("17"), searches)
+        onNodeWithText("Post number 17").assertIsDisplayed()
+        onNodeWithText("Choose a post").performClick()
+        assertEquals(listOf("17", ""), searches, "closing the dropdown clears the search")
     }
 }

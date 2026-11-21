@@ -17,13 +17,21 @@ interface MogulClient {
 
     suspend fun podcasts(): List<Notable>
 
-    suspend fun podcastEpisodes(podcastId: Int): List<Notable>
+    // the episodes whose titles have every word of [query] in them (all of them, for none),
+    // newest first, and at most [limit] of them (all of them, for none)
+    suspend fun podcastEpisodes(podcastId: Int, query: String? = null, limit: Int? = null): List<Notable>
+
+    suspend fun podcastEpisode(episodeId: Int): Notable
 
     suspend fun podcastOfEpisode(episodeId: Int): Int
 
     suspend fun blogs(): List<Notable>
 
-    suspend fun blogPosts(blogId: Int): List<Notable>
+    // the posts whose titles have every word of [query] in them (all of them, for none),
+    // newest first, and at most [limit] of them (all of them, for none)
+    suspend fun blogPosts(blogId: Int, query: String? = null, limit: Int? = null): List<Notable>
+
+    suspend fun blogPost(postId: Int): Notable
 
     suspend fun blogOfPost(postId: Int): Int
 
@@ -37,6 +45,12 @@ interface MogulClient {
 
 // an in-memory Mogul, so the screen has something to talk to before there's a way to
 // sign in from outside a browser (personal access tokens in the gateway)
+// what the gateway does with a query and a limit, done in memory
+internal fun List<Notable>.page(query: String?, limit: Int?): List<Notable> {
+    val matches = this.map { (it.title ?: "") to it }.matching(query.orEmpty()).map { it.second }.newestFirst()
+    return if (limit == null) matches else matches.take(limit)
+}
+
 class DemoMogulClient(private var signedIn: Boolean = true) : MogulClient {
 
     override val studioUrl = "https://studio.mogul.tools"
@@ -79,14 +93,20 @@ class DemoMogulClient(private var signedIn: Boolean = true) : MogulClient {
 
     override suspend fun podcasts() = call().let { this.podcasts }
 
-    override suspend fun podcastEpisodes(podcastId: Int) = call().let { this.episodes[podcastId].orEmpty() }
+    override suspend fun podcastEpisodes(podcastId: Int, query: String?, limit: Int?) =
+        call().let { this.episodes[podcastId].orEmpty().page(query, limit) }
+
+    override suspend fun podcastEpisode(episodeId: Int) = call().let { this.episodes.values.flatten().first { it.id == episodeId } }
 
     override suspend fun podcastOfEpisode(episodeId: Int) =
         call().let { this.episodes.entries.first { e -> e.value.any { it.id == episodeId } }.key }
 
     override suspend fun blogs() = call().let { this.blogs }
 
-    override suspend fun blogPosts(blogId: Int) = call().let { this.posts[blogId].orEmpty() }
+    override suspend fun blogPosts(blogId: Int, query: String?, limit: Int?) =
+        call().let { this.posts[blogId].orEmpty().page(query, limit) }
+
+    override suspend fun blogPost(postId: Int) = call().let { this.posts.values.flatten().first { it.id == postId } }
 
     override suspend fun blogOfPost(postId: Int) =
         call().let { this.posts.entries.first { e -> e.value.any { it.id == postId } }.key }

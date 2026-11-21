@@ -8,8 +8,8 @@ class ShareViewController: UINavigationController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        Task { @MainActor in
-            let (subject, text) = await self.shared()
+        Task { @MainActor [weak self] in
+            guard let (subject, text) = await self?.shared(), let self else { return }
             let clip = MainViewControllerKt.ShareViewController(subject: subject, text: text) { [weak self] in
                 self?.extensionContext?.completeRequest(returningItems: nil)
             }
