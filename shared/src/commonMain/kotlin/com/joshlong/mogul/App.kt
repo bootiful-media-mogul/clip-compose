@@ -27,7 +27,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -57,6 +60,7 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -363,13 +367,14 @@ internal fun Select(
     var expanded by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val type = LocalType.current
+    val inView = remember { BringIntoViewRequester() }
     val close = {
         expanded = false
         if (query.isNotEmpty())
             search?.invoke("")
         query = ""
     }
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth().bringIntoViewRequester(inView)) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -411,6 +416,11 @@ internal fun Select(
                         placeholder = searchPlaceholder,
                     )
                 val shown = remember(options, query, search) { if (search != null) options else options.matching(query) }
+                // the dropdown is at the bottom of the form, which the keyboard covers on a
+                // phone: when it opens, the keyboard comes up, or a search comes back, the form
+                // scrolls to show what's in it, not just the field being typed in
+                val keyboard = WindowInsets.ime.getBottom(LocalDensity.current)
+                LaunchedEffect(shown, keyboard) { inView.bringIntoView() }
                 if (shown.isEmpty() && query.isNotBlank())
                     Text("Nothing matches", Modifier.padding(horizontal = 12.dp, vertical = 10.dp), style = type.small)
                 // the form scrolls, so the list inside it needs a height of its own
@@ -419,9 +429,11 @@ internal fun Select(
                         DropdownMenuItem(
                             modifier = Modifier.height(ROW_HEIGHT),
                             text = { Text(label, style = type.body, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            // pick, then close: closing clears the search, and what it found
+                            // goes with it
                             onClick = {
-                                close()
                                 choose()
+                                close()
                             },
                         )
                     }
