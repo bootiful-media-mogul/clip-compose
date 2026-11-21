@@ -253,13 +253,23 @@ private fun AttachTo(state: ClipState, model: ClipViewModel) {
     val spec = AttachSpec.of(attach.kind) ?: return
     val pick = attach.pick
     val parents = state.choices.parents
+    // a podcast or blog picked here means an episode or post is next: its dropdown opens,
+    // with the cursor in its search, once they've loaded
+    var parentPicked by remember { mutableStateOf(false) }
     Label(spec.parentLabel, small = true)
     Select(
         selected = parents.firstOrNull { it.id == pick.parentId }?.titleOrUntitled(),
         placeholder = if (parents.isEmpty()) spec.noParents else spec.chooseParent,
-        options = parents.map { it.titleOrUntitled() to { model.attachParent(it.id) } },
+        options = parents.map {
+            it.titleOrUntitled() to {
+                parentPicked = true
+                model.attachParent(it.id)
+            }
+        },
     )
     val children = state.choices.children ?: return
+    val openChildren = parentPicked
+    LaunchedEffect(Unit) { parentPicked = false }
     // a note already on the whole podcast can stay there
     val whole = spec.wholeParent?.takeIf { spec.parentType != null && pick.wholeParent }
     Label(spec.childLabel, small = true)
@@ -272,6 +282,7 @@ private fun AttachTo(state: ClipState, model: ClipViewModel) {
         // only the newest are here: the rest are found by asking mogul
         search = if (choices.more) model::searchChildren else null,
         searchPlaceholder = "Search all ${spec.childLabel.lowercase()}s",
+        startOpen = openChildren,
     )
 }
 
@@ -363,8 +374,12 @@ internal fun Select(
     options: List<Pair<String, () -> Unit>>,
     search: ((String) -> Unit)? = null,
     searchPlaceholder: String = "Search",
+    // open from the start, with the cursor in the search, if there's anything to choose
+    startOpen: Boolean = false,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val opening = startOpen && (options.isNotEmpty() || search != null)
+    var expanded by remember { mutableStateOf(opening) }
+    val searchFocus = remember { FocusRequester() }
     var query by remember { mutableStateOf("") }
     val type = LocalType.current
     val inView = remember { BringIntoViewRequester() }
@@ -405,16 +420,19 @@ internal fun Select(
                     .background(Palette.fieldBg)
                     .border(1.dp, Palette.fieldBorder, shape),
             ) {
-                if (search != null || options.size > SEARCHABLE)
+                if (search != null || options.size > SEARCHABLE) {
                     Field(
                         query,
                         {
                             query = it
                             search?.invoke(it)
                         },
-                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp).focusRequester(searchFocus),
                         placeholder = searchPlaceholder,
                     )
+                    if (opening)
+                        LaunchedEffect(Unit) { searchFocus.requestFocus() }
+                }
                 val shown = remember(options, query, search) { if (search != null) options else options.matching(query) }
                 // the dropdown is at the bottom of the form, which the keyboard covers on a
                 // phone: when it opens, the keyboard comes up, or a search comes back, the form

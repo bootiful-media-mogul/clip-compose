@@ -46,8 +46,8 @@ class PickAFoundPostTest {
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Choose a blog").fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText("Choose a blog").performClick()
         onNodeWithText("spring.io").performClick()
-        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Choose a post").fetchSemanticsNodes().isNotEmpty() }
-        onNodeWithText("Choose a post").performClick()
+        // picking the blog opens its posts, ready to search
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Search all posts").fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText("Search all posts").performTextInput("1717")
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Post number 1717").fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText("Post number 1717").performClick()

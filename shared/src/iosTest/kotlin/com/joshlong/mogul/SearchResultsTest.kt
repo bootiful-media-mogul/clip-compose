@@ -2,6 +2,7 @@ package com.joshlong.mogul
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -62,8 +63,9 @@ class SearchResultsTest {
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Choose a podcast").fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText("Choose a podcast").performClick()
         onNodeWithText("A Bootiful Podcast").performClick()
-        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Choose an episode").fetchSemanticsNodes().isNotEmpty() }
-        onNodeWithText("Choose an episode").performClick()
+        // picking the podcast opens its episodes, ready to search: no tap on the dropdown
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Search all episodes").fetchSemanticsNodes().isNotEmpty() }
+        onAllNodes(hasSetTextAction()).onLast().assertIsFocused()
         // the phone sends a search per key
         for (c in "cornelia davis")
             onAllNodes(hasSetTextAction()).onLast().performTextInput(c.toString())
