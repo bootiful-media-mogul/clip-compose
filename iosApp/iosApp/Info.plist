@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- the name under the icon, and in the share sheet's row of apps -->
+	<key>CFBundleDisplayName</key>
+	<string>Mogul Clip</string>
 	<!-- the only encryption is https, which ios does: answers app store connect's export compliance question -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
