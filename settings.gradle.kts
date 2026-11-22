@@ -1,4 +1,4 @@
-rootProject.name = "clip-kmp"
+rootProject.name = "clip-mobile"
 
 pluginManagement {
     repositories {
