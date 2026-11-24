@@ -27,14 +27,14 @@ val localProperties = Properties().apply {
 }
 val redirectUri = providers.gradleProperty("mogul.redirectUri").orNull
     ?: localProperties.getProperty("mogul.redirectUri")
-    ?: "com.joshlong.mogul://callback"
+    ?: "com.joshlong.mogul.clip://callback"
 
 android {
     namespace = "com.joshlong.mogul"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.joshlong.mogul"
+        applicationId = "com.joshlong.mogul.clip"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
@@ -46,23 +46,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    // the upload key, for bin/android.sh: from -Pmogul.android.keystore=... and so on, or the
-    // environment (MOGUL_ANDROID_KEYSTORE and so on), never checked in. without one, the
-    // release build comes out unsigned
-    fun signing(name: String) = providers.gradleProperty("mogul.android.$name")
-        .orElse(providers.environmentVariable("MOGUL_ANDROID_" + name.replace(Regex("([a-z])([A-Z])"), "$1_$2").uppercase()))
-    val keystore = signing("keystore").orNull
-    signingConfigs {
-        if (keystore != null) create("release") {
-            storeFile = file(keystore)
-            storePassword = signing("keystorePassword").get()
-            keyAlias = signing("keyAlias").get()
-            keyPassword = signing("keyPassword").get()
-        }
-    }
+    // bin/android.sh signs the release build, through the android gradle plugin's injected
+    // signing properties
     buildTypes {
         release {
-            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

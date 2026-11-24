@@ -13,11 +13,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import clip_kmp.shared.generated.resources.Res
-import clip_kmp.shared.generated.resources.ibm_plex_mono_400
-import clip_kmp.shared.generated.resources.ibm_plex_sans_400
-import clip_kmp.shared.generated.resources.ibm_plex_sans_600
-import clip_kmp.shared.generated.resources.space_grotesk_700
+import com.joshlong.mogul.resources.Res
+import com.joshlong.mogul.resources.ibm_plex_mono_400
+import com.joshlong.mogul.resources.ibm_plex_sans_400
+import com.joshlong.mogul.resources.ibm_plex_sans_600
+import com.joshlong.mogul.resources.space_grotesk_700
 import org.jetbrains.compose.resources.Font
 
 // the studio's look (client/src/assets/base.css, the day palette), as in the clip extension's popup.css

@@ -1,4 +1,4 @@
-rootProject.name = "clip-mobile"
+rootProject.name = "clip-compose"
 
 pluginManagement {
     repositories {

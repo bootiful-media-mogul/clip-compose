@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
-# a production build of the ios app (and its share extension), pointed at production mogul:
-# an archive, and the .ipa exported from it for app store connect, in iosApp/build/release.
-# signs with the team in the xcode project, using the apple account signed in to xcode
-# (xcode > settings > accounts), which creates or updates the provisioning profiles it needs.
-set -euo pipefail
-cd "$(dirname "$0")/.."
+# a production build of the ios app (and any extensions), pointed at the production server
+# (APP_SERVER names another): an archive, and the .ipa exported from it for app store
+# connect, in <xcode project's directory>/build/release. signs with the team in the xcode
+# project, using the apple account signed in to xcode (xcode > settings > accounts), which
+# creates or updates the provisioning profiles it needs.
+# shellcheck source=common.sh
+source "$(dirname "$0")/common.sh"
 
-MOGUL_SERVER="${MOGUL_SERVER:-https://studio.mogul.tools}"
-out=iosApp/build/release
+project="$(prop ios.project)"
+scheme="$(prop ios.scheme)"
+archive="$(prop ios.archive)"
+server_property="$(prop server.property)"
+server="$(release_server)"
+out="$(dirname "$project")/build/release"
 rm -rf "$out"
 mkdir -p "$out"
 
 # xcode runs gradle to build the kotlin framework, and gradle reads the server from this.
 # it has a dot in its name, which the shell can't export, but env can pass along
-env "ORG_GRADLE_PROJECT_mogul.server=$MOGUL_SERVER" xcodebuild archive \
-  -project iosApp/iosApp.xcodeproj \
-  -scheme iosApp \
+env "ORG_GRADLE_PROJECT_$server_property=$server" xcodebuild archive \
+  -project "$project" \
+  -scheme "$scheme" \
   -configuration Release \
   -destination 'generic/platform=iOS' \
-  -archivePath "$out/MogulClip.xcarchive" \
+  -archivePath "$out/$archive.xcarchive" \
   -allowProvisioningUpdates
 
 cat > "$out/ExportOptions.plist" <<PLIST
@@ -37,11 +42,11 @@ cat > "$out/ExportOptions.plist" <<PLIST
 PLIST
 
 xcodebuild -exportArchive \
-  -archivePath "$out/MogulClip.xcarchive" \
+  -archivePath "$out/$archive.xcarchive" \
   -exportOptionsPlist "$out/ExportOptions.plist" \
   -exportPath "$out" \
   -allowProvisioningUpdates
 
 echo
-echo "built for $MOGUL_SERVER:"
+echo "built for $server:"
 ls "$out"/*.ipa

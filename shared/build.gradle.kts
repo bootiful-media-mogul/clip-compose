@@ -29,7 +29,7 @@ val mogulConfig = mapOf(
     "auth0ClientId" to mogulProperty("mogul.auth0.clientId"),
     // the auth0 api that stands for mogul's api; the api and the gateway check tokens are for it
     "auth0Audience" to mogulProperty("mogul.auth0.audience", "https://api.mogul.tools"),
-    "redirectUri" to mogulProperty("mogul.redirectUri", "com.joshlong.mogul://callback"),
+    "redirectUri" to mogulProperty("mogul.redirectUri", "com.joshlong.mogul.clip://callback"),
 )
 
 val generateMogulConfig = tasks.register("generateMogulConfig") {
@@ -158,4 +158,9 @@ androidComponents {
             it.manifestPlaceholders.put("oidcRedirectScheme", scheme)
         }
     }
+}
+// pinned, so Res doesn't move when the project is renamed: compose otherwise derives its
+// package from the root project's name
+compose.resources {
+    packageOfResClass = "com.joshlong.mogul.resources"
 }

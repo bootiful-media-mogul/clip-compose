@@ -37,7 +37,7 @@ class GraphqlMogulClientTest {
         auth0Domain = "https://mogul.auth0.test/",
         auth0ClientId = "clip",
         auth0Audience = "https://api.mogul.tools",
-        redirectUri = "com.joshlong.mogul://callback",
+        redirectUri = "com.joshlong.mogul.clip://callback",
     )
 
     private class MemorySettings : SettingsStore {

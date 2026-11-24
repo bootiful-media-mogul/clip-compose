@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# builds the android app for development (talking to a gateway on this machine,
-# http://127.0.0.1:1010, which the emulator reaches at 10.0.2.2), and runs it on the
-# emulator, starting one if none is running. AVD=<name> picks which (emulator -list-avds).
-set -euo pipefail
-cd "$(dirname "$0")/.."
+# builds the android app for development (talking to the server the apps default to, on this
+# machine), and runs it on the emulator, starting one if none is running. AVD=<name> picks
+# which (emulator -list-avds).
+# shellcheck source=common.sh
+source "$(dirname "$0")/common.sh"
+
+module="$(prop android.module)"
+application_id="$(prop android.applicationId)"
 
 sdk="${ANDROID_HOME:-$(sed -n 's/^sdk\.dir=//p' local.properties 2>/dev/null)}"
 sdk="${sdk:-$HOME/Library/Android/sdk}"
@@ -20,5 +23,8 @@ if ! "$adb" devices | grep -q '^emulator-.*device$'; then
 fi
 
 serial="$("$adb" devices | awk '/^emulator-.*device$/ { print $1; exit }')"
-ANDROID_SERIAL="$serial" ./gradlew :androidApp:installDebug
-"$adb" -s "$serial" shell am start -n com.joshlong.mogul/.MainActivity
+ANDROID_SERIAL="$serial" ./gradlew ":$module:installDebug"
+
+# whichever activity the app's launcher icon opens
+activity="$("$adb" -s "$serial" shell cmd package resolve-activity --brief -c android.intent.category.LAUNCHER "$application_id" | tr -d '\r' | tail -n 1)"
+"$adb" -s "$serial" shell am start -n "$activity"
