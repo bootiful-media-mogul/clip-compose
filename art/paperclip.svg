@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- a paper clip, drawn upright around (0,0), then tipped 45 degrees so it runs from bottom left to top right.
+       it's longer than the M is wide, so it reads as a clip lying on the M rather than a stroke of the letter -->
+  <defs>
+    <path id="wire" d="M 30,-210 L 30,270 A 30,30 0 0 1 -30,270 L -30,-320 A 51,51 0 0 1 72,-320 L 72,320 A 72,72 0 0 1 -72,320 L -72,-230"/>
+  </defs>
+  <g transform="translate(512 512) rotate(45) scale(1.05)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- an edge in the background colour, so the white wire stands apart from the M where it crosses it -->
+    <use xlink:href="#wire" stroke="#1E293B" stroke-width="40"/>
+    <use xlink:href="#wire" stroke="#FFFFFF" stroke-width="24"/>
+  </g>
+</svg>
