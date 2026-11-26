@@ -164,3 +164,24 @@ androidComponents {
 compose.resources {
     packageOfResClass = "com.joshlong.mogul.resources"
 }
+
+// android can't draw an svg resource: painterResource throws, and the app dies on launch, while
+// every other platform draws it, so nothing else would notice. every build that makes the
+// resource accessors stops here instead, as ../studio-compose/bin/svg2vector.sh makes a vector drawable, which they all draw
+val checkNoSvgResources = tasks.register("checkNoSvgResources") {
+    val root = projectDir
+    val svgs = fileTree("src") { include("*/composeResources/**/*.svg") }
+    inputs.files(svgs)
+    doLast {
+        val found = svgs.files.map { it.relativeTo(root).path }.sorted()
+        if (found.isNotEmpty()) throw GradleException(
+            "android can't draw these svg resources, and the app would crash on launch:\n" +
+                found.joinToString("\n") { "  shared/$it" } +
+                "\nmake each a vector drawable with ../studio-compose/bin/svg2vector.sh in.svg out.xml, and delete the svg",
+        )
+    }
+}
+
+tasks.matching { it.name == "generateComposeResClass" || it.name.startsWith("generateResourceAccessorsFor") }
+    .configureEach { dependsOn(checkNoSvgResources) }
+tasks.named("check") { dependsOn(checkNoSvgResources) }
