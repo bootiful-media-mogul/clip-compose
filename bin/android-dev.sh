@@ -2,7 +2,7 @@
 # builds the android app for development (talking to the server the apps default to, on this
 # machine), and runs it on the emulator, starting one if none is running. AVD=<name> picks
 # which (emulator -list-avds).
-# shellcheck source=common.sh
+# shellcheck source-path=SCRIPTDIR source=common.sh
 source "$(dirname "$0")/common.sh"
 
 module="$(prop android.module)"

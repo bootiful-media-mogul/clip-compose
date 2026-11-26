@@ -2,7 +2,7 @@
 # builds the ios app for development (talking to the server the apps default to, on this
 # machine) and runs it on a simulator, showing its output here until you quit it.
 # SIMULATOR=<name> picks which (xcrun simctl list devices available).
-# shellcheck source=common.sh
+# shellcheck source-path=SCRIPTDIR source=common.sh
 source "$(dirname "$0")/common.sh"
 
 project="$(prop ios.project)"

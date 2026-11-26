@@ -13,7 +13,7 @@
 # play only takes signed bundles, so this needs the upload key bin/android.sh signs with, too
 # (ANDROID_KEYSTORE and the rest). PLAY_RELEASE_STATUS is completed, or draft while play
 # console still has the app itself as a draft.
-# shellcheck source=common.sh
+# shellcheck source-path=SCRIPTDIR source=common.sh
 source "$(dirname "$0")/common.sh"
 
 module="$(prop android.module)"

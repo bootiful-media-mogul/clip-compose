@@ -13,7 +13,7 @@
 #
 # each upload needs a build number higher than the last, so this uses the time: 20261120.2245.
 # apple then processes the build for a few minutes before testflight offers it.
-# shellcheck source=common.sh
+# shellcheck source-path=SCRIPTDIR source=common.sh
 source "$(dirname "$0")/common.sh"
 
 project="$(prop ios.project)"

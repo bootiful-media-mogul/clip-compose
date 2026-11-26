@@ -4,7 +4,7 @@
 # connect, in <xcode project's directory>/build/release. signs with the team in the xcode
 # project, using the apple account signed in to xcode (xcode > settings > accounts), which
 # creates or updates the provisioning profiles it needs.
-# shellcheck source=common.sh
+# shellcheck source-path=SCRIPTDIR source=common.sh
 source "$(dirname "$0")/common.sh"
 
 project="$(prop ios.project)"
