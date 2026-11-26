@@ -45,9 +45,23 @@ A passkey from another device (the QR code) can't sign in on a simulator or an e
   They're signed if the upload key's `ANDROID_KEYSTORE*` environment variables are set (see the script), and unsigned otherwise.
 * `bin/ios.sh` archives the app and its share extension against production and exports an `.ipa` for App Store Connect, in `iosApp/build/release`.
   It signs with the team in the Xcode project, through the Apple account signed in to Xcode, which creates the app ids and provisioning profiles it needs.
-* `bin/ios_testflight.sh` does the same and uploads the build to TestFlight, signing and uploading with an App Store Connect API key instead of an Apple ID, so it can run unattended.
+* `bin/ios-testflight.sh` does the same and uploads the build to TestFlight, signing and uploading with an App Store Connect API key instead of an Apple ID, so it can run unattended.
   `source ~/code/mogul/workspace/bin/env.sh` sets the key (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY`) from the `mogul-clip-appstore-connect-api` item in Bitwarden.
   Each build is numbered with the time it was made, so every upload is newer than the last.
+* `bin/android-play.sh` builds the signed bundle the same way and releases it to Google Play's internal testing track (`android.track` in `app.properties`, or `ANDROID_TRACK`), with a Google Cloud service account's JSON key in `PLAY_SERVICE_ACCOUNT`.
+  The service account is invited in Play Console with release permissions, and Play takes the app's first bundle only by hand.
+  Each build's version code is the minutes since 1970, so every upload is newer than the last.
+
+## releasing from github actions
+
+Every push to `main` releases the apps the same way, through the same scripts.
+
+* `.github/workflows/ios.yaml` runs `bin/ios-testflight.sh` on a macOS runner, with the API key in the `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_KEY` secrets.
+  `IOS_CERTIFICATE` (an Apple Development certificate and its key, as a base64 `.p12`) and `IOS_CERTIFICATE_PASSWORD` give Xcode a certificate to sign the archive with; the export is signed with Apple's cloud-managed distribution certificate.
+* `.github/workflows/android.yaml` runs `bin/android-play.sh` on a Linux runner, with the upload keystore in `ANDROID_KEYSTORE_BASE64`, its passwords and alias in `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and the service account's key in `PLAY_SERVICE_ACCOUNT`.
+  Set the `PLAY_RELEASE_STATUS` variable to `draft` while Play Console still has the app as a draft.
+
+A push that only changes the other platform's code doesn't start a run, and either workflow can be run by hand.
 
 ## how it's put together
 

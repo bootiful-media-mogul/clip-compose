@@ -62,11 +62,6 @@ class Type(fonts: Fonts) {
         fontFamily = fonts.display, fontWeight = FontWeight.Bold, fontSize = 15.sp,
         letterSpacing = (-0.01).em, color = Palette.chromeInk,
     )
-    val brandName = TextStyle(
-        fontFamily = fonts.display, fontWeight = FontWeight.Bold, fontSize = 25.6.sp,
-        lineHeight = 25.6.sp, letterSpacing = (-0.05).em, color = Palette.chromeInk,
-    )
-    val brandProduct = TextStyle(fontFamily = fonts.mono, fontSize = 10.4.sp, letterSpacing = 0.24.em, color = Palette.brand)
     val user = TextStyle(fontFamily = fonts.body, fontSize = 13.6.sp, color = Palette.brand)
     val savedTitle = TextStyle(fontFamily = fonts.display, fontWeight = FontWeight.Bold, fontSize = 17.25.sp, color = Palette.ink)
     val error = TextStyle(fontFamily = fonts.body, fontSize = 12.75.sp, color = Palette.danger)

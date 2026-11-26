@@ -1,0 +1,74 @@
+name: iOS
+
+# every push to main that touches the app goes to testflight (bin/ios-testflight.sh), the way it
+# would from a laptop. ios only builds on a mac, so this runs on github's.
+#
+# secrets:
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY   the app store connect api key, which signs, makes the
+#                                        provisioning profiles and uploads
+#   IOS_CERTIFICATE                      an apple development certificate with its private key:
+#                                        a .p12, base64 encoded. xcode signs the archive with it
+#                                        and the export with apple's cloud-managed distribution
+#                                        certificate. without it, xcode makes a new development
+#                                        certificate on every run, and apple caps how many a
+#                                        team has
+#   IOS_CERTIFICATE_PASSWORD             the .p12's password
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'androidApp/**'
+      - 'webApp/**'
+      - 'desktopApp/**'
+      - '**.md'
+      - '.github/workflows/android.yaml'
+      - '.github/workflows/web.yaml'
+      - '.github/workflows/desktop.yaml'
+      - '.github/workflows/build-container.sh'
+      - '.github/workflows/nginx-buildpack-config/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ios
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    name: Upload to TestFlight
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY: ${{ secrets.ASC_KEY }}
+      # only to ask, below, whether there is one
+      HAS_IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE != '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # kotlin/native's compiler and its dependencies, which gradle's cache doesn't hold
+      - uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      - name: Import the signing certificate
+        if: ${{ env.HAS_IOS_CERTIFICATE == 'true' }}
+        env:
+          CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+        run: .github/workflows/import-certificate.sh
+
+      - name: Build and upload
+        run: bin/ios-testflight.sh

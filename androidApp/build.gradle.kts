@@ -37,8 +37,9 @@ android {
         applicationId = "com.joshlong.mogul.clip"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        // bin/android.sh sets both for a release: play takes each version code only once
+        versionCode = providers.gradleProperty("mogul.versionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("mogul.versionName").orNull ?: "1.0"
         manifestPlaceholders["oidcRedirectScheme"] = redirectUri.substringBefore(":")
     }
     packaging {

@@ -32,9 +32,16 @@ if [ -n "${ANDROID_KEYSTORE:-}" ]; then
   )
 fi
 
+# play takes each version code once, and only higher than the last: minutes since 1970 always
+# are, and fit android's int for millennia. the name is the time too, as the ios build number is
+now="$(date -u +%s)"
+version_code="$((now / 60))"
+version_name="$(date -u -r "$now" +%Y%m%d.%H%M 2>/dev/null || date -u -d "@$now" +%Y%m%d.%H%M)"
+
 env ${signing[@]+"${signing[@]}"} ./gradlew "-P$server_property=$server" \
+  "-Pmogul.versionCode=$version_code" "-Pmogul.versionName=$version_name" \
   clean ":$module:bundleRelease" ":$module:assembleRelease"
 
 echo
-echo "built for $server:"
+echo "built version $version_name ($version_code) for $server:"
 find "$module/build/outputs" \( -name '*.aab' -o -name '*.apk' \) | grep -i release

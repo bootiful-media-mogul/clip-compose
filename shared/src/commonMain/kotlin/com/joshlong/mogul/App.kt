@@ -1,6 +1,7 @@
 package com.joshlong.mogul
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,7 +26,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.ime
@@ -75,8 +76,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.joshlong.mogul.resources.Res
+import com.joshlong.mogul.resources.mogul_clip_logo
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+import org.jetbrains.compose.resources.painterResource
 
 private val shape = RoundedCornerShape(Space.radius)
 
@@ -145,15 +149,21 @@ private fun TopBar(user: String) {
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .padding(horizontal = Space.gutter, vertical = Space.gutterHalf),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(Modifier.alignByBaseline()) {
-            Text("mogul", Modifier.alignByBaseline(), style = type.brandName)
-            Spacer(Modifier.width(6.dp))
-            Text("CLIP", Modifier.alignByBaseline(), style = type.brandProduct)
-        }
-        Text(user, Modifier.alignByBaseline(), style = type.user)
+        // the logo is one svg, the words outlines on one baseline, so it's the same picture on
+        // every phone and in every browser; its box is the svg's own shape, as it loads lazily
+        Image(
+            painterResource(Res.drawable.mogul_clip_logo),
+            contentDescription = "mogul clip",
+            modifier = Modifier.height(32.dp).aspectRatio(LOGO_ASPECT),
+        )
+        Text(user, style = type.user)
     }
 }
+
+/** art/mogul-clip-wordmark.svg's width over its height, as bin/brand.sh prints it */
+private const val LOGO_ASPECT = 577.06f / 125f
 
 // a studio panel: a navy header bar over a light body, rounded, on the sky blue page
 @Composable

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100">
+  <!-- mogul clip's mark: mogul studio's logo (client-compose/brand/mogul-logo.svg) with art/paperclip.svg
+       lying across the M, as the app icons draw it. bin/brand.sh makes the top bar's logo from this -->
+  <defs>
+    <path id="wire" d="M 30,-210 L 30,270 A 30,30 0 0 1 -30,270 L -30,-320 A 51,51 0 0 1 72,-320 L 72,320 A 72,72 0 0 1 -72,320 L -72,-230"/>
+  </defs>
+  <rect id="tile" width="100" height="100" rx="20" fill="#1e293b"/>
+  <path id="m" d="M20 70V30h15l15 15 15-15h15v40H70V45L50 60 30 45v25z" fill="#609ea0"/>
+  <circle id="ring" cx="50" cy="50" r="35" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity=".3"/>
+  <g transform="scale(.09765625) translate(512 512) rotate(45) scale(1.05)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <use xlink:href="#wire" stroke="#1e293b" stroke-width="40"/>
+    <use xlink:href="#wire" stroke="#ffffff" stroke-width="24"/>
+  </g>
+</svg>
